@@ -1,0 +1,26 @@
+version: "2"
+
+linters:
+  settings:
+    errcheck:
+      # Best-effort cleanup and diagnostics: failing to close an already
+      # doomed handle or to write a log/test line has no recovery path.
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - io.Copy
+        - (net.Conn).Close
+        - (net.Conn).Write
+        - (net.Listener).Close
+        - (io.ReadCloser).Close
+        - (*database/sql.DB).Close
+        - (*database/sql.Rows).Close
+        # Deferred rollback is the standard idiom: after a successful Commit it
+        # just returns ErrTxDone, and on the failure path the returned error is
+        # already what we propagate.
+        - (*database/sql.Tx).Rollback
+        # Every FlagSet here is built with flag.ExitOnError, so Parse exits the
+        # process on a bad flag rather than returning a non-nil error.
+        - (*flag.FlagSet).Parse
+        - (*github.com/antonkomarev/certel/internal/store.Store).Close

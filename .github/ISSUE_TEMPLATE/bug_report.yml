@@ -1,0 +1,44 @@
+name: Bug report
+description: Something behaves differently from what the documentation promises
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        If this might be a security vulnerability, please do NOT file a public
+        issue — see [SECURITY.md](../blob/main/SECURITY.md).
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `certel -version` (or the image tag).
+      placeholder: certel v0.3.0
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: >-
+        The relevant part of your config.yaml. Redact addresses and remove
+        header values — never paste tokens.
+      render: yaml
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Relevant log lines (text or JSON), ideally around the failing check.
+      render: text
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: OS/arch, bare binary or Docker, anything unusual in between (proxy, firewall).
+      placeholder: linux/amd64, Docker 27, behind an egress proxy

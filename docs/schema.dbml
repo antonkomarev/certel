@@ -1,0 +1,114 @@
+// Database schema of certel (SQLite, created by internal/store).
+// Render at https://dbdiagram.io or with the dbml CLI.
+//
+// Conventions:
+//   - target_key: stable target identifier "protocol//address/servername"
+//     (config.Target.Key()), e.g. "tls//example.com:443/". Its format must
+//     stay stable across versions.
+//   - timestamps are unix seconds; 0 means "never" / "unknown".
+//   - booleans are stored as SQLite integers 0/1.
+
+Project certel_monitor {
+  database_type: 'SQLite'
+  Note: '''
+    alert_state is mutable working state (one row per target, upserted).
+    notification_outbox is the pending-delivery queue (rows deleted once sent).
+    probe_log and alert_log are append-only; rows older than
+    database.probe_log_retention and database.alert_log_retention
+    (each default 90 days) are pruned hourly.
+  '''
+}
+
+Table alert_state {
+  target_key    text    [pk, note: 'target identifier, see conventions']
+  status        text    [not null, note: 'last known check status: ok / expiring_soon / expired / invalid / weak_signature / tls_unavailable / unreachable']
+  severity      text    [not null, note: 'last known real (unclamped) severity: ok / warning / critical / emergency. Per-notifier min_severity floors are applied at decision time, never stored']
+  last_alert_at integer [not null, note: 'unix seconds of the last problem alert; the target alert_repeat_interval counts from here on the real severity, and the timer starts when the alert is enqueued. One clock shared by every notifier the target fans out to. 0 = never alerted']
+
+  Note: '''
+    Per-target alert dedup and repeat-timer state, restored into memory on
+    startup: a known problem is not re-alerted after a restart. It carries only
+    the dedup inputs — the "a notice is owed" obligation lives in notification_outbox,
+    not here. Rows for targets removed from the configuration are pruned at
+    startup. Not subject to retention.
+  '''
+}
+
+Table notification_outbox {
+  id             integer [pk, note: 'rowid alias; also the FIFO drain order within a (notifier, target_key)']
+  target_key     text    [not null, note: 'target identifier, see conventions; deliveries drain in id order within a (notifier, target_key)']
+  notifier       text    [not null, note: 'target notifier name; each notifier has its own dispatcher draining only its rows']
+  body           blob    [not null, note: 'rendered webhook payload, frozen at enqueue with the notifier template in force then']
+  enqueued_at    integer [not null, note: 'unix seconds when the delivery was enqueued']
+  attempts_count integer [not null, default: 0, note: 'delivery attempts so far; a row stays queued until it sends']
+  last_error     text    [not null, default: '', note: 'last delivery failure detail, empty until one occurs']
+
+  indexes {
+    (notifier, target_key, id) [name: 'notification_outbox_notifier_key_id', note: 'oldest pending row per target, scoped to a notifier']
+  }
+
+  Note: '''
+    Pure delivery queue: a row exists only while a notice is still owed, and is
+    deleted on a successful send. Enqueued in one transaction with the
+    alert_state update and the alert_log row, so a crash cannot mark a target
+    alerted without a matching pending delivery. Drained in id order per
+    (notifier, target_key), so a target's notices are delivered in the order they
+    occurred (a stuck endpoint blocks only its own target, on its own notifier).
+    Never pruned by age: a row here is an undelivered obligation, so dropping it
+    would silently lose an alert. Exception: rows whose notifier is no longer in
+    the config (renamed or removed) are dropped at startup with a logged count —
+    their frozen body belongs to a destination that no longer exists.
+  '''
+}
+
+Table probe_log {
+  id          integer [pk, note: 'rowid alias']
+  target_key  text    [not null, note: 'target identifier, see conventions']
+  address     text    [not null, note: 'host:port actually connected to (denormalized from target_key)']
+  protocol    text    [not null, note: 'tls / smtp / imap / pop3 / ftp / postgres (denormalized from target_key)']
+  checked_at  integer [not null, note: 'unix seconds when the check ran']
+  status      text    [not null, note: 'check outcome, same values as alert_state.status']
+  severity    text    [not null, note: 'ok / warning / critical']
+  message     text    [not null, default: '', note: 'human-readable detail, e.g. "connection refused"']
+  days_left   integer [not null, note: 'whole days until effective expiry, negative if past; 0 when unknown']
+  not_after   integer [not null, note: 'effective expiry (earliest in the verified chain), unix seconds; 0 = unknown, e.g. target unreachable']
+  duration_ms integer [not null, note: 'probe duration including connection retries']
+  attempts    integer [not null, note: 'final count of connection attempts within this single check (up to retries + 1); intermediate attempts do not produce their own rows']
+
+  indexes {
+    (target_key, checked_at) [name: 'probe_log_key_time', note: 'per-target history queries']
+    checked_at [name: 'probe_log_time', note: 'retention pruning']
+  }
+
+  Note: 'Append-only log: one row per check of each target, written whether or not an alert fired.'
+}
+
+Table alert_log {
+  id         integer [pk, note: 'rowid alias']
+  target_key text    [not null, note: 'target identifier, see conventions']
+  notifier   text    [not null, note: 'notifier this delivery reached; answers "which destination" when debugging a pager that never fired. A fanned-out alert writes one row per firing notifier']
+  address    text    [not null, note: 'host:port (denormalized from target_key)']
+  logged_at  integer [not null, note: 'unix seconds when the alert event was recorded (at enqueue)']
+  status     text    [not null, note: 'check status this channel saw (its clamped view: the real status for a problem it carries, ok for a recovery below its min_severity floor)']
+  severity   text    [not null, note: 'ok / warning / critical / emergency — the severity this channel saw (clamped by its min_severity floor); severity = ok marks a recovery event']
+
+  indexes {
+    logged_at [name: 'alert_log_time', note: 'retention pruning']
+  }
+
+  Note: '''
+    Append-only history of alert deliveries: one row per firing notifier (a
+    fanned-out alert writes several, one per channel that fired), written when the
+    alert is decided (enqueued). It records what each channel saw — its clamped
+    status/severity — and which notifier it reached, not how it was delivered;
+    delivery lives in notification_outbox and the process logs. Whether a row is a
+    recovery is read from severity (ok), not stored separately.
+  '''
+}
+
+// Logical relations only: SQLite foreign keys are not declared in the actual
+// schema, and probe_log/alert_log keep rows for targets that may have been
+// removed from alert_state.
+Ref: probe_log.target_key > alert_state.target_key
+Ref: alert_log.target_key > alert_state.target_key
+Ref: notification_outbox.target_key > alert_state.target_key

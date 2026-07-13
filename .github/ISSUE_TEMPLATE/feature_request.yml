@@ -1,0 +1,27 @@
+name: Feature request
+description: Suggest an improvement or a new capability
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: >-
+        What are you trying to do that certel currently can't?
+        Describe the situation rather than the solution — it helps us weigh
+        alternatives.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How you imagine it working — config sketch, alert payload example, etc.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: >-
+        Workarounds you tried, or existing tools that do this and how they
+        approach it. Note the project deliberately stays a single binary with
+        a single YAML file.

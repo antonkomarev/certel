@@ -1,0 +1,216 @@
+## certel example configuration.
+## Copy to config.yaml and adjust. Validate with: certel validate-config
+
+server:
+  ## /metrics (Prometheus) and /healthz
+  listen: ":8880"
+
+probe:
+  ## how often every target is probed
+  check_interval: 5m
+  ## max simultaneous probes (separate from alert.concurrency)
+  concurrency: 10
+  ## random per-target delay spread within each cycle
+  jitter: 10s
+
+database:
+  ## SQLite file holding alert state (so restarts do not re-send alerts or
+  ## lose recovery notices) plus probe and alert logs. Created on startup,
+  ## including the parent directory. When path is omitted, the database goes
+  ## to a db/ directory next to the binary.
+  # path: /var/lib/certel/certel.sqlite
+
+  ## prune probe_log entries older than this
+  probe_log_retention: 90d
+  ## prune alert_log entries older than this
+  alert_log_retention: 365d
+
+## Named delivery destinations. Each notifier is fully independent: its own url,
+## body, headers, delivery/retry policy, severity floor and TLS. A target
+## attaches to one or more by name and fans out to all of them (see
+## target_defaults.notifiers / the per-target notifiers below). The map key is the
+## notifier name — duplicates are rejected by the YAML parser. Deliveries are
+## isolated per notifier: a down or slow notifier cannot delay another's delivery,
+## and concurrency is therefore a per-notifier budget. The repeat cadence is not a
+## notifier setting — it belongs to the problem on the target (alert_repeat_interval
+## below), so every notifier a target fans out to shares one reminder clock.
+##
+## The message is a `body:` — a YAML structure, not hand-written JSON. certel
+## renders each string value and marshals the whole thing to JSON, so you write
+## the message, never a brace. Two interpolation namespaces share one
+## ${namespace.path} syntax:
+##   ${env.VAR}    a secret, resolved once at startup from the environment
+##                 (startup fails if the variable is unset)
+##   ${alert.Path} per-alert data, resolved when the alert is rendered
+## A value that is exactly one ${alert.X} reference keeps its native JSON type
+## (a number stays a number); a reference inside a larger string yields a string.
+## Timestamps take an optional "| format" suffix: a named preset (date, datetime,
+## time, human, rfc3339) or a strftime pattern (%Y-%m-%d). Write a literal "${"
+## as "$${". Available fields: Host, Address, Port, Protocol, Status, Severity,
+## Message, Recovered, DaysLeft, CheckedAt and Cert.{Subject, SubjectCN, Issuer,
+## IssuerCN, IssuerOrg, NotBefore, NotAfter, EarliestNotAfter, SigAlg, Serial,
+## SANs} (Cert.* renders empty when the handshake never completed).
+notifiers:
+  ## A generic JSON webhook the bulk of targets post to. No min_severity, so it
+  ## carries every alert — the always-on channel. Its machine-oriented body
+  ## renders both firing and recovery notices correctly (the prober sets Status,
+  ## Severity and Message for each), so no recovery_body override is needed.
+  default:
+    url: http://127.0.0.1:9999/alert
+    method: POST
+    headers:
+      ## The body is sent as Content-Type: application/json by default; set a
+      ## different Content-Type here to override it.
+      ## ${env.VAR} is expanded from the environment at startup, so secrets stay
+      ## out of the config file. Startup fails if the variable is unset.
+      Authorization: "Bearer ${env.ALERT_TOKEN}"
+    body:
+      host: ${alert.Host}
+      address: ${alert.Address}
+      status: ${alert.Status}
+      severity: ${alert.Severity}
+      recovered: ${alert.Recovered}
+      days_left: ${alert.DaysLeft}
+      not_after: ${alert.Cert.NotAfter | rfc3339}
+      message: ${alert.Message}
+    timeout: 10s
+    ## extra delivery attempts after the first, with exponential backoff (1s, 2s, 4s...)
+    retries: 2
+    ## max targets this notifier delivers to at once (separate from probe concurrency)
+    concurrency: 10
+
+    ## min_severity is the delivery floor: the notifier carries only alerts at or
+    ## above it (warning/critical/emergency), a drop below it reads as a recovery.
+    ## Omitted here (default warning) so this channel carries every alert; see
+    ## the pager below for an emergency-only channel.
+    # min_severity: warning
+
+    ## send_recovery: notify when a problem clears (default true); set false only
+    ## for a receiver that auto-resolves, like the pager below.
+    # send_recovery: true
+
+    ## For a webhook endpoint behind an internal CA (Mattermost, ntfy, a company
+    ## relay), mirror the per-target TLS options on the alert receiver itself:
+    ## trust anchor for the webhook endpoint
+    # ca_file: /etc/ssl/internal-ca.pem
+
+    ## last resort: skip verification entirely
+    # insecure: false
+
+  ## A Telegram bot: the token lives in the URL, the chat id in the body, both
+  ## from the environment. recovery_body is a sparse override — only the `text`
+  ## differs on recovery, everything else (chat_id, parse_mode, ...) is inherited,
+  ## so there is no duplication and no drift.
+  telegram:
+    url: https://api.telegram.org/bot${env.TELEGRAM_TOKEN}/sendMessage
+    body:
+      chat_id: ${env.TELEGRAM_CHAT_ID}
+      parse_mode: HTML
+      disable_web_page_preview: true
+      text: |
+        <b>SSL expiration notice</b> ⌛
+        https://${alert.Host}/
+        The SSL certificate served by ${alert.Host} will expire in ${alert.DaysLeft} days
+
+        🔒 <b>Certificate:</b>
+        subject:   ${alert.Cert.SubjectCN}
+        validity:  ${alert.Cert.NotBefore | human} — ${alert.Cert.NotAfter | human}
+        algorithm: ${alert.Cert.SigAlg}
+        issuer:    ${alert.Cert.IssuerCN} (${alert.Cert.IssuerOrg})
+    recovery_body:
+      text: |
+        <b>SSL certificate recovered</b> ✅
+        https://${alert.Host}/
+        Now valid until ${alert.Cert.NotAfter | human}
+
+  ## A shared pager that must only wake someone for a cert that is already failing
+  ## (expired/invalid) — never for an approaching deadline. min_severity: emergency
+  ## is the floor; a target fans out to both this and default, so warnings still
+  ## land in chat while only emergencies page. No recovery notices — PagerDuty
+  ## auto-resolves, so send_recovery: false and no recovery_body is needed. The
+  ## nested `payload` shows a non-flat schema written directly as YAML.
+  pager:
+    url: https://events.pagerduty.com/v2/enqueue
+    body:
+      routing_key: ${env.PAGERDUTY_KEY}
+      event_action: trigger
+      payload:
+        summary: "${alert.Host} ${alert.Status}"
+        severity: critical
+        source: ${alert.Host}
+    ## only already-failing certs (expired/invalid) reach the pager
+    min_severity: emergency
+    send_recovery: false
+
+## applied to every target that does not override them
+target_defaults:
+  ## the notifier(s) a target fans out to unless it names its own
+  notifiers: [default]
+  ## How often a persisting problem is re-alerted. Lives on the target, not the
+  ## notifier, so every notifier a target fans out to shares one reminder clock.
+  ## A single duration is the same cadence for every severity (the built-in
+  ## default is a flat 24h); the per-severity map form below is the documented
+  ## upgrade — it makes the reminder louder as severity rises and must be complete
+  ## (warning, critical AND emergency — a missing entry is a startup error). Every
+  ## entry must be at least probe.check_interval (a tighter cadence can never fire).
+  alert_repeat_interval:
+    ## an approaching deadline: a gentle nudge every few days
+    warning: 3d
+    ## inside the critical window: keep the pressure on
+    critical: 1d
+    ## already expired/invalid: the most urgent cadence
+    emergency: 1h
+  ## A threshold fires when strictly fewer than N days remain: warning_days: 30
+  ## alerts once under 30 days are left, critical_days: 7 once under 7.
+  warning_days: 30
+  critical_days: 7
+  timeout: 10s
+  ## extra connection attempts before "unreachable"
+  connect_retries: 2
+  ## How many consecutive flapping cycles a network-shaped failure (unreachable,
+  ## tls_unavailable) must persist before it alerts, so a brief blip does not
+  ## produce an alert-then-recovery pair. Fact statuses read from a retrieved
+  ## certificate (expired, invalid, ...) always alert on the first cycle,
+  ## regardless of this. 1 disables the debounce (alert immediately).
+  flap_streak: 2
+
+targets:
+  ## Plain TLS endpoint; port defaults to 443 for protocol tls. Uses the
+  ## target_defaults notifiers (default only).
+  - address: example.com
+
+  ## A public site that also posts a rich Telegram notice on top of the default
+  ## machine webhook.
+  - address: komarev.com
+    notifiers: [default, telegram]
+
+  ## Certificate served on an internal address under a different name:
+  ## connect to the IP, send/verify the public hostname via SNI.
+  - address: 10.0.0.5:8443
+    servername: internal.example.com
+    ca_file: /etc/ssl/internal-ca.pem
+
+  ## Self-signed certificate: skip trust and hostname verification, still check
+  ## expiry. Expiry covers the leaf and the certs it chains to by issuer link;
+  ## extraneous certs the server bundles (a stale root, a leftover cross-sign)
+  ## are ignored, so a long-expired straggler won't raise a false alert.
+  - address: legacy.example.com:9443
+    insecure: true
+
+  ## STARTTLS protocols: smtp, imap, pop3, ftp, postgres.
+  ## Default ports: smtp 587, imap 143, pop3 110, ftp 21, postgres 5432.
+  - address: mail.example.com:587
+    protocol: smtp
+
+  ## A critical database: fan out to both channels. Every alert still posts to
+  ## chat (default), and — because the pager's min_severity is emergency — only an
+  ## already-failing cert (expired/invalid) also pages someone. A per-target
+  ## alert_repeat_interval scalar overrides the defaults' map for this target.
+  - address: db.example.com
+    protocol: postgres
+    ## per-target list wins over target_defaults
+    notifiers: [default, pager]
+    ## same cadence for every severity, just for this target
+    alert_repeat_interval: 12h
+    ## per-target threshold override
+    warning_days: 45
