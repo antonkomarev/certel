@@ -108,10 +108,9 @@ notifiers:
       parse_mode: HTML
       disable_web_page_preview: true
       text: |
-        <b>SSL expiration notice</b> ⌛
+        <b>⚠️ SSL alert: ${alert.Status}</b> (${alert.Severity})
         https://${alert.Host}/
-        The SSL certificate served by ${alert.Host} will expire in ${alert.DaysLeft} days
-
+        ${alert.Message}
         🔒 <b>Certificate:</b>
         subject:   ${alert.Cert.SubjectCN}
         validity:  ${alert.Cert.NotBefore | human} — ${alert.Cert.NotAfter | human}
@@ -119,8 +118,9 @@ notifiers:
         issuer:    ${alert.Cert.IssuerCN} (${alert.Cert.IssuerOrg})
     recovery_body:
       text: |
-        <b>SSL certificate recovered</b> ✅
+        <b>✅ SSL recovered: ${alert.Host}</b>
         https://${alert.Host}/
+        ${alert.Message}
         Now valid until ${alert.Cert.NotAfter | human}
 
   ## A shared pager that must only wake someone for a cert that is already failing
