@@ -125,6 +125,9 @@ a single duration (same cadence for all severities) or a complete per-severity
 map (`{warning, critical, emergency}`) so the reminder tightens as severity
 rises; each entry must be at least `probe.check_interval`. The built-in default
 is a flat `24h`; the per-severity map is the opt-in upgrade, not the default.
+Any entry (or the scalar) may be `never` — alert once on entering that severity
+and never remind while it is held; escalation to a higher severity still fires
+immediately (e.g. `{warning: never, critical: 1d, emergency: 1h}`).
 
 ### Body
 

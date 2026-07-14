@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"math"
 	"net"
 	"net/url"
 	"os"
@@ -44,12 +45,23 @@ func (d *Duration) UnmarshalYAML(node *yaml.Node) error {
 	if err := node.Decode(&s); err != nil {
 		return err
 	}
+	parsed, err := parseDurationString(s)
+	if err != nil {
+		return err
+	}
+	*d = parsed
+	return nil
+}
+
+// parseDurationString parses a duration string with certel's "d" day extension
+// (see expandDays). Shared by Duration.UnmarshalYAML and the repeat-interval
+// parser so both accept the same syntax and report the same error.
+func parseDurationString(s string) (Duration, error) {
 	parsed, err := time.ParseDuration(expandDays(s))
 	if err != nil {
-		return fmt.Errorf("invalid duration %q: %w", s, err)
+		return 0, fmt.Errorf("invalid duration %q: %w", s, err)
 	}
-	*d = Duration(parsed)
-	return nil
+	return Duration(parsed), nil
 }
 
 func (d Duration) Std() time.Duration { return time.Duration(d) }
@@ -67,7 +79,9 @@ var repeatSeverities = []string{"warning", "critical", "emergency"}
 // reminder can tighten as severity rises. The map form must be complete —
 // every severity in repeatSeverities must have an entry; a missing one is a
 // config error, not a silent fall-back — while the scalar form is the explicit
-// "same cadence for all" shorthand.
+// "same cadence for all" shorthand. Any entry (scalar or per-severity) may be
+// the literal "never", which alerts once and never reminds at that severity; it
+// is stored as the repeatNever sentinel.
 type RepeatInterval struct {
 	// perSeverity holds the cadence per severity. Populated for both forms: the
 	// scalar form fills every severity with the same value at unmarshal time, so
@@ -80,24 +94,54 @@ type RepeatInterval struct {
 	isMap bool
 }
 
+// repeatNever is the sentinel a "never" entry carries: a cadence so distant the
+// repeat comparison in Process can never fire, so the problem alerts once and is
+// not reminded again at that severity (an escalation to a higher severity still
+// fires immediately via the shape-change branch). MaxInt64 is chosen so For(),
+// validate() and the Process comparison need no special case — the sentinel is
+// just an ordinary, enormous, positive duration that clears every floor and is
+// never reached.
+const repeatNever = Duration(math.MaxInt64)
+
+// parseRepeatEntry parses one alert_repeat_interval value: the literal "never"
+// (alert once, no reminders at that severity) or an ordinary duration.
+func parseRepeatEntry(s string) (Duration, error) {
+	if strings.TrimSpace(s) == "never" {
+		return repeatNever, nil
+	}
+	return parseDurationString(s)
+}
+
 func (r *RepeatInterval) UnmarshalYAML(node *yaml.Node) error {
 	switch node.Kind {
 	case yaml.ScalarNode:
-		var d Duration
-		if err := node.Decode(&d); err != nil {
+		var s string
+		if err := node.Decode(&s); err != nil {
+			return err
+		}
+		d, err := parseRepeatEntry(s)
+		if err != nil {
 			return err
 		}
 		*r = scalarRepeat(d)
 		return nil
 	case yaml.MappingNode:
-		m := map[string]Duration{}
-		if err := node.Decode(&m); err != nil {
+		var raw map[string]string
+		if err := node.Decode(&raw); err != nil {
 			return err
+		}
+		m := make(map[string]Duration, len(raw))
+		for k, v := range raw {
+			d, err := parseRepeatEntry(v)
+			if err != nil {
+				return err
+			}
+			m[k] = d
 		}
 		*r = RepeatInterval{perSeverity: m, isMap: true}
 		return nil
 	default:
-		return fmt.Errorf("alert_repeat_interval must be a duration (e.g. 24h) or a per-severity map (e.g. {warning: 3d, critical: 1d, emergency: 1d})")
+		return fmt.Errorf("alert_repeat_interval must be a duration (e.g. 24h), the word \"never\", or a per-severity map (e.g. {warning: 3d, critical: 1d, emergency: 1d})")
 	}
 }
 
@@ -135,6 +179,8 @@ func (r RepeatInterval) unset() bool { return r.perSeverity == nil }
 // For returns the repeat cadence for a severity. It is only consulted for the
 // bad severities (warning/critical/emergency), which validation guarantees are
 // present; an unknown severity yields 0, which the caller reads as "repeat now".
+// A "never" entry returns the repeatNever sentinel — an enormous duration the
+// Process comparison never reaches — so no reminder ever fires for it.
 func (r RepeatInterval) For(severity string) time.Duration {
 	return r.perSeverity[severity].Std()
 }
@@ -142,8 +188,10 @@ func (r RepeatInterval) For(severity string) time.Duration {
 // validate checks one alert_repeat_interval: every entry positive, the map form
 // complete with no unknown severity keys, and every entry at least the probe
 // check_interval floor (a cadence tighter than the probe loop can never fire and
-// would silently degrade — a lie about the very cadence this promises). label is
-// the full config path of the field (e.g. "targets[0] (a.com).alert_repeat_interval")
+// would silently degrade — a lie about the very cadence this promises). A
+// "never" entry carries the repeatNever sentinel, which clears both the positive
+// and the floor check by construction, so it passes without a special case.
+// label is the full config path of the field (e.g. "targets[0] (a.com).alert_repeat_interval")
 // so the message points at the offending target.
 func (r RepeatInterval) validate(label string, checkInterval Duration) error {
 	if r.isMap {

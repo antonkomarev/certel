@@ -153,6 +153,10 @@ target_defaults:
   ## upgrade — it makes the reminder louder as severity rises and must be complete
   ## (warning, critical AND emergency — a missing entry is a startup error). Every
   ## entry must be at least probe.check_interval (a tighter cadence can never fire).
+  ## Any entry (or the scalar) may be the literal "never": it alerts once on the
+  ## transition into that severity and never reminds while it is held — an
+  ## escalation to a higher severity still fires immediately. Use it to silence
+  ## reminders for a level you only want to hear about once (e.g. warning: never).
   alert_repeat_interval:
     ## an approaching deadline: a gentle nudge every few days
     warning: 3d

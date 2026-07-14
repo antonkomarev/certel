@@ -24,6 +24,15 @@ against `last_alert_at`; there is **no persisted state change**. (Per
 [0006](adr-0006-fan-out-is-delivery-only.md) the field lives on the *target*, so all of a
 target's notifiers share the one clock.)
 
+Any entry — scalar or a single severity in the map — may be the literal **`never`**
+(e.g. `{warning: never, critical: 1d, emergency: 1h}`), which alerts **once** on the
+transition into that severity and then never reminds while it is held. It is stored as
+the `repeatNever` sentinel (`Duration(math.MaxInt64)`), chosen so `For`, `validate` and
+the `Process` comparison need **no special case**: it is simply an enormous, positive
+cadence that clears every floor and is never reached. Escalation to a higher severity
+still fires immediately via the shape-change branch, so `warning: never` silences the
+warning reminders without ever masking the jump to critical.
+
 ## Consequences
 
 - **The map must be complete** — a missing severity is a config *error*, not a silent
@@ -36,6 +45,13 @@ target's notifiers share the one clock.)
   and the floor.
 - Escalation on a severity *rise* is already immediate via the shape-change branch;
   this governs cadence only *within* a held severity.
+- **`never` is a floor-exempt sentinel, not a count cap.** Because it silences reminders
+  only *within* a held severity while the shape-change branch still fires the escalation,
+  `warning: never` cannot hide a worsening cert — the jump to critical is unaffected. That
+  is what distinguishes it from the send-count cap rejected below, which would fall silent
+  as a *single* severity persists and worsens. `never` is validated like any other entry
+  (it clears the positive and `>= check_interval` checks by construction), so no bypass
+  path is added.
 - The per-severity map doubles as the fatigue guard (`warning: 3d` stops the
   500-notice spam) and composes with, but does not subsume, the `min_severity` floor —
   "warning every 3d, critical every 1d on the same channel" cannot be expressed with
@@ -51,7 +67,9 @@ target's notifiers share the one clock.)
 - **A send-count cap / fatigue cutoff.** Rejected: it contradicts the premise — the
   reminder should get louder, not fall silent exactly when nobody is looking — and would
   require persisting a send counter, breaking the "no new state" property. Muting is the
-  operator's call (receiver-side).
+  operator's call (receiver-side). The `never` sentinel is *not* this: it drops reminders
+  for a chosen severity up-front (statelessly) while leaving escalation intact, rather than
+  going quiet after a count as one severity worsens.
 
 ## References
 

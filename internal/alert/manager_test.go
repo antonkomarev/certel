@@ -3,6 +3,7 @@ package alert
 import (
 	"context"
 	"log/slog"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -323,6 +324,52 @@ func TestRepeatCadenceTightensWithSeverity(t *testing.T) {
 	// THEN: приходит напоминание — критическое напоминает раз в час, не раз в 3 дня
 	if got := len(store.bodies()); got != 3 {
 		t.Fatalf("critical reminder after 1h cadence expected, got %d", got)
+	}
+}
+
+func TestRepeatNeverSuppressesReminder(t *testing.T) {
+	// GIVEN: у цели warning помечен "never" (сентинел repeatNever), а critical —
+	// раз в час; "never" — это огромная каденция config.Duration(math.MaxInt64)
+	m, store, now := testManager(t)
+	cadence := config.NewRepeatIntervalMap(map[string]config.Duration{
+		"warning":   config.Duration(math.MaxInt64),
+		"critical":  config.Duration(time.Hour),
+		"emergency": config.Duration(time.Hour),
+	})
+	res := func(status probe.Status, sev probe.Severity) probe.Result {
+		r := result(status, sev)
+		r.Target.AlertRepeatInterval = cadence
+		return r
+	}
+	ctx := context.Background()
+
+	// WHEN: цель впервые в предупреждении
+	m.Process(ctx, res(probe.StatusExpiringSoon, probe.SeverityWarning))
+	if got := len(store.bodies()); got != 1 {
+		t.Fatalf("transition into warning must enqueue once, got %d", got)
+	}
+
+	// WHEN: предупреждение держится 100 дней
+	*now = now.Add(100 * 24 * time.Hour)
+	m.Process(ctx, res(probe.StatusExpiringSoon, probe.SeverityWarning))
+	// THEN: напоминания нет никогда — warning помечен "never"
+	if got := len(store.bodies()); got != 1 {
+		t.Fatalf("warning marked never must never remind, got %d", got)
+	}
+
+	// WHEN: серьёзность растёт до критической (эскалация уведомляет немедленно —
+	// смена severity идёт мимо repeat-таймера, "never" на неё не влияет)
+	m.Process(ctx, res(probe.StatusExpiringSoon, probe.SeverityCritical))
+	if got := len(store.bodies()); got != 2 {
+		t.Fatalf("escalation to critical must enqueue despite warning=never, got %d", got)
+	}
+
+	// WHEN: критическое держится ещё час (истекла часовая каденция)
+	*now = now.Add(time.Hour)
+	m.Process(ctx, res(probe.StatusExpiringSoon, probe.SeverityCritical))
+	// THEN: критическое по-прежнему напоминает — "never" не задело другие серьёзности
+	if got := len(store.bodies()); got != 3 {
+		t.Fatalf("critical reminder must still fire, got %d", got)
 	}
 }
 

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -250,6 +251,44 @@ targets:
 	for _, sev := range []string{"warning", "critical", "emergency"} {
 		if got := flat.For(sev); got != 6*time.Hour {
 			t.Errorf("scalar form %s cadence: got %v, want 6h", sev, got)
+		}
+	}
+}
+
+func TestAlertRepeatIntervalNever(t *testing.T) {
+	// GIVEN: одна цель отключает повтор для warning через "never" в карте, другая
+	// задаёт "never" скаляром (раз и без напоминаний для всех серьёзностей)
+	cfg, err := Load(writeConfig(t, minimalNotifier+`
+  alert_repeat_interval:
+    warning: never
+    critical: 1d
+    emergency: 1h
+targets:
+  - address: warn-once.example.com
+  - address: all-once.example.com
+    alert_repeat_interval: never
+`))
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+
+	// THEN: "never" превращается в сентинел repeatNever (огромная каденция, до
+	// которой сравнение в Process не дотягивается), а остальные записи — обычные
+	never := time.Duration(math.MaxInt64)
+	mapped := cfg.Targets[0].AlertRepeatInterval
+	if got := mapped.For("warning"); got != never {
+		t.Errorf("warning cadence: got %v, want repeatNever (%v)", got, never)
+	}
+	if got := mapped.For("critical"); got != 24*time.Hour {
+		t.Errorf("critical cadence: got %v, want 24h", got)
+	}
+	if got := mapped.For("emergency"); got != time.Hour {
+		t.Errorf("emergency cadence: got %v, want 1h", got)
+	}
+	scalar := cfg.Targets[1].AlertRepeatInterval
+	for _, sev := range []string{"warning", "critical", "emergency"} {
+		if got := scalar.For(sev); got != never {
+			t.Errorf("scalar never %s cadence: got %v, want repeatNever", sev, got)
 		}
 	}
 }
