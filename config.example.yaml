@@ -146,6 +146,10 @@ notifiers:
 target_defaults:
   ## the notifier(s) a target fans out to unless it names its own
   notifiers: [default]
+  ## A threshold fires when strictly fewer than N days remain: warning_days: 30
+  ## alerts once under 30 days are left, critical_days: 7 once under 7.
+  warning_days: 30
+  critical_days: 7
   ## How often a persisting problem is re-alerted. Lives on the target, not the
   ## notifier, so every notifier a target fans out to shares one reminder clock.
   ## A single duration is the same cadence for every severity (the built-in
@@ -164,10 +168,6 @@ target_defaults:
     critical: 1d
     ## already expired/invalid: the most urgent cadence
     emergency: 1h
-  ## A threshold fires when strictly fewer than N days remain: warning_days: 30
-  ## alerts once under 30 days are left, critical_days: 7 once under 7.
-  warning_days: 30
-  critical_days: 7
   timeout: 10s
   ## extra connection attempts before "unreachable"
   connect_retries: 2
