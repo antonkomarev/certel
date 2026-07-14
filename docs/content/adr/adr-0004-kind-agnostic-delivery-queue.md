@@ -1,4 +1,7 @@
-# 0004. A kind-agnostic, notifier-scoped delivery queue
+---
+title: '0004. A kind-agnostic, notifier-scoped delivery queue'
+weight: 4
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-10

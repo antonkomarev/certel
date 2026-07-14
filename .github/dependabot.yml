@@ -1,0 +1,19 @@
+version: 2
+updates:
+  # GitHub Actions across all workflows (CI + docs deploy).
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Application Go dependencies.
+  - package-ecosystem: gomod
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Hugo modules for the docs site (Hextra theme).
+  - package-ecosystem: gomod
+    directory: /docs
+    schedule:
+      interval: weekly

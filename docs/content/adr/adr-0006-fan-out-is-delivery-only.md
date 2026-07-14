@@ -1,4 +1,7 @@
-# 0006. Multi-notifier fan-out is delivery-only; the repeat clock lives on the target
+---
+title: '0006. Multi-notifier fan-out is delivery-only; the repeat clock lives on the target'
+weight: 6
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-11

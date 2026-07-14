@@ -1,4 +1,7 @@
-# 0005. Config-only named webhook notifiers
+---
+title: '0005. Config-only named webhook notifiers'
+weight: 5
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-09

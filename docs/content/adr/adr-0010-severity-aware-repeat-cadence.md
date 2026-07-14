@@ -1,4 +1,7 @@
-# 0010. Severity-aware repeat cadence
+---
+title: '0010. Severity-aware repeat cadence'
+weight: 10
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-11

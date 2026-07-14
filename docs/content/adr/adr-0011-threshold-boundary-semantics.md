@@ -1,4 +1,7 @@
-# 0011. Alert when strictly fewer than N whole days remain
+---
+title: '0011. Alert when strictly fewer than N whole days remain'
+weight: 11
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-11
@@ -33,4 +36,4 @@ decision agrees with a Prometheus line at `N * 86400` over
 
 - `internal/probe/probe.go` (`daysUntil`, threshold switch), `internal/probe/result.go`
   (`DaysLeft`).
-- "Check statuses" section in the [README](../../README.md).
+- "Check statuses" section in the [README](https://github.com/antonkomarev/certel).

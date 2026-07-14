@@ -1,4 +1,7 @@
-# 0017. Lock the config surface before 1.0
+---
+title: '0017. Lock the config surface before 1.0'
+weight: 17
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-12

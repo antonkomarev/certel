@@ -1,4 +1,8 @@
-# NNNN. Short title of the decision
+---
+title: 'NNNN. Short title of the decision'
+weight: 999
+excludeSearch: true
+---
 
 - **Status:** Proposed | Accepted | Superseded by NNNN | Deprecated
 - **Date:** YYYY-MM-DD

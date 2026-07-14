@@ -228,7 +228,7 @@ next to the binary, the directory is created automatically) stores:
 
 Probe and alert log entries older than `database.probe_log_retention` and
 `database.alert_log_retention` (each default 90 days) are pruned hourly. The full schema with per-column notes is documented in
-[docs/schema.dbml](docs/schema.dbml). The file is safe to inspect while the
+[docs/static/schema.dbml](docs/static/schema.dbml). The file is safe to inspect while the
 monitor runs:
 
 ```sh
@@ -258,7 +258,7 @@ ssl_cert_not_after{address="$target"}    # certel
 
 The full surface — every metric, the naming and label policy, per-metric
 semantics, absence rules, and what was deliberately left out — is in
-[docs/metrics.md](docs/metrics.md).
+the [metrics reference](https://antonkomarev.github.io/certel/metrics/).
 
 ## Shell completion
 
@@ -301,9 +301,9 @@ go run ./cmd/notification-sink -status 500    # simulate a broken endpoint to te
 go run ./cmd/notification-sink -verbose       # also print request headers (auth etc.)
 ```
 
-See [docs/alternatives.md](docs/alternatives.md) for the survey of existing
-tools and the reasoning behind building this one, and
-[docs/adr/](docs/adr/) for the Architecture Decision Records — the *why* behind
+See the [alternatives survey](https://antonkomarev.github.io/certel/alternatives/)
+for the study of existing tools and the reasoning behind building this one, and
+the [ADRs](https://antonkomarev.github.io/certel/adr/) for the Architecture Decision Records — the *why* behind
 the non-obvious design choices (delivery-only fan-out, the stateless
 `min_severity` floor, the SQLite outbox model, the severity ladder, and the rest).
 

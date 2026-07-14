@@ -1,4 +1,7 @@
-# 0002. Build a self-contained monitor, not an exporter add-on
+---
+title: '0002. Build a self-contained monitor, not an exporter add-on'
+weight: 2
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-09

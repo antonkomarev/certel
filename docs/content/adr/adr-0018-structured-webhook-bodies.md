@@ -1,4 +1,7 @@
-# 0018. Structured webhook bodies with `${namespace.path}` interpolation
+---
+title: '0018. Structured webhook bodies with `${namespace.path}` interpolation'
+weight: 18
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-13
@@ -72,4 +75,4 @@ reference layout (`2006-01-02`) is never exposed.
 
 - `internal/alert/template.go`, `internal/config/config.go` (`AlertConfig.Body`,
   `expandEnv`), `internal/probe/result.go` (`CertInfo`), `config.example.yaml`.
-- "Body" section in the [README](../../README.md).
+- "Body" section in the [README](https://github.com/antonkomarev/certel).
