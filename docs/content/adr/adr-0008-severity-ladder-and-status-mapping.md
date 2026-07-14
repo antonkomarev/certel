@@ -1,4 +1,7 @@
-# 0008. Three-tier severity ladder and the status→severity mapping
+---
+title: '0008. Three-tier severity ladder and the status→severity mapping'
+weight: 8
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-10
@@ -51,4 +54,4 @@ threshold would be meaningless.
 ## References
 
 - `internal/probe/result.go`, `internal/probe/probe.go`, `internal/metrics/metrics.go`.
-- Status table in the [README](../../README.md) "Check statuses" section.
+- Status table in the [README](https://github.com/antonkomarev/certel) "Check statuses" section.

@@ -1,4 +1,7 @@
-# 0012. Verify the chain before diagnosing expiry
+---
+title: '0012. Verify the chain before diagnosing expiry'
+weight: 12
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-10

@@ -1,4 +1,7 @@
-# 0009. Debounce network-shaped statuses; fact statuses alert on the first cycle
+---
+title: '0009. Debounce network-shaped statuses; fact statuses alert on the first cycle'
+weight: 9
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-11
@@ -61,4 +64,4 @@ few rows.
 
 - `internal/alert/manager.go` (`Process`, `Restore`), `internal/store/store.go`
   (`RecentProbeStatuses`), `probe_log(target_key, checked_at)` index.
-- "Flap debounce" section in the [README](../../README.md).
+- "Flap debounce" section in the [README](https://github.com/antonkomarev/certel).

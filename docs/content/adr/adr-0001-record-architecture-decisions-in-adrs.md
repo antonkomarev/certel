@@ -1,4 +1,7 @@
-# 0001. Record architecture decisions in ADRs
+---
+title: '0001. Record architecture decisions in ADRs'
+weight: 1
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-12
@@ -27,8 +30,8 @@ The candidate formats:
 ## Decision
 
 We adopt **ADRs as the primary format**, laid out under
-`docs/adr/adr-NNNN-title.md` with the conventions in this directory's
-[README](README.md): monotonic four-digit numbering, a
+`docs/content/adr/adr-NNNN-title.md` with the conventions in this section's
+[index](_index.md): monotonic four-digit numbering, a
 `Proposed/Accepted/Superseded/Deprecated` status line, and an append-only rule
 (a changed decision gets a new superseding ADR; the old one stays).
 
@@ -36,10 +39,10 @@ certel's design is, concretely, a pile of individual "we chose X over Y" calls â
 the exact unit an ADR captures. ADRs also pair naturally with how the reasoning
 is produced: each resolved `todo/` design lock graduates into one ADR. We
 deliberately stand up **no TSD or FRD**, because their jobs are already covered:
-the big-picture/onboarding role by the [README](../../README.md) plus the two
+the big-picture/onboarding role by the [README](https://github.com/antonkomarev/certel) plus the two
 standing design docs ([`alternatives.md`](../alternatives.md),
 [`metrics.md`](../metrics.md)), and the feature/scope contract by the README and
-[`config.example.yaml`](../../config.example.yaml). This chooses the primary
+[`config.example.yaml`](https://github.com/antonkomarev/certel/blob/main/config.example.yaml). This chooses the primary
 format; it does not forbid the others (see the alternatives below).
 
 ## Consequences

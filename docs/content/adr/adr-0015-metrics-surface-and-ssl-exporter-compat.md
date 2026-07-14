@@ -1,4 +1,7 @@
-# 0015. Prometheus metrics surface and ssl_exporter name compatibility
+---
+title: '0015. Prometheus metrics surface and ssl_exporter name compatibility'
+weight: 15
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-10

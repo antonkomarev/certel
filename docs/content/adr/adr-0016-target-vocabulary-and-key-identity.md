@@ -1,4 +1,7 @@
-# 0016. "target" as the domain vocabulary and `Target.Key` identity
+---
+title: '0016. "target" as the domain vocabulary and `Target.Key` identity'
+weight: 16
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-10

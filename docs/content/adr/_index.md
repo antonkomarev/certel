@@ -1,4 +1,8 @@
-# Architecture Decision Records
+---
+title: 'Architecture Decision Records'
+linkTitle: 'ADRs'
+weight: 30
+---
 
 One short, backward-looking document per non-obvious design decision — its
 *context*, the *decision*, and the *consequences* — so a future contributor can

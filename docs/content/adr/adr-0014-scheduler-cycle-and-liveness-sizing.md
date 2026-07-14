@@ -1,4 +1,7 @@
-# 0014. Size the scheduler cycle and liveness to the worst legal cycle
+---
+title: '0014. Size the scheduler cycle and liveness to the worst legal cycle'
+weight: 14
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-10

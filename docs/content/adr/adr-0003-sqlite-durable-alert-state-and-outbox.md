@@ -1,4 +1,7 @@
-# 0003. Persist alert state and queue deliveries in SQLite
+---
+title: '0003. Persist alert state and queue deliveries in SQLite'
+weight: 3
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-09
@@ -46,7 +49,7 @@ from *delivering* it.
   promise while giving transactions, queryable logs, and safe concurrent inspection.
 - The state store is also why a container **must** keep its DB volume — without it a
   recreation loses dedup state and re-sends alerts for known problems.
-- The full schema with per-column notes lives in [`docs/schema.dbml`](../schema.dbml).
+- The full schema with per-column notes lives in [`docs/schema.dbml`](https://github.com/antonkomarev/certel/blob/main/docs/static/schema.dbml).
 
 ## Alternatives considered
 
@@ -62,4 +65,4 @@ from *delivering* it.
 
 - `internal/alert/manager.go`, `internal/alert/dispatcher.go`, `internal/store/store.go`.
 - Related: [0004](adr-0004-kind-agnostic-delivery-queue.md), and the durable-delivery
-  wording in the [README](../../README.md) "State and logs" section.
+  wording in the [README](https://github.com/antonkomarev/certel) "State and logs" section.

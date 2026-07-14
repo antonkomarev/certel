@@ -1,4 +1,7 @@
-# 0013. Accept TLS ≥ 1.0, verify trust manually; the `weak_signature` status
+---
+title: '0013. Accept TLS ≥ 1.0, verify trust manually; the `weak_signature` status'
+weight: 13
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-09

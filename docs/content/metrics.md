@@ -1,4 +1,7 @@
-# Metrics
+---
+title: 'Metrics'
+weight: 10
+---
 
 Everything `certel monitor` exports on `/metrics`, designed as one surface:
 what each metric is for, the rules new metrics must follow, and what was

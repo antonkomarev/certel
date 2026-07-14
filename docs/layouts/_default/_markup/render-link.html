@@ -1,0 +1,17 @@
+{{- /*
+  Resolve relative Markdown cross-links (e.g. the ADRs' `adr-0007-….md` links)
+  to their built page URLs. Hextra ships no link render hook, so without this
+  Hugo would emit the raw `.md` href verbatim and every cross-reference 404s.
+  External and already-absolute links pass through untouched.
+*/ -}}
+{{- $dest := .Destination -}}
+{{- $u := urls.Parse $dest -}}
+{{- if and (not $u.IsAbs) (strings.HasSuffix (lower $u.Path) ".md") -}}
+  {{- with .Page.GetPage $u.Path -}}
+    {{- $dest = .RelPermalink -}}
+    {{- with $u.Fragment }}{{ $dest = printf "%s#%s" $dest . }}{{ end -}}
+  {{- else -}}
+    {{- warnf "render-link: unresolved %q in %q" $.Destination $.Page.Path -}}
+  {{- end -}}
+{{- end -}}
+<a href="{{ $dest }}"{{ with .Title }} title="{{ . }}"{{ end }}>{{ .Text | safeHTML }}</a>

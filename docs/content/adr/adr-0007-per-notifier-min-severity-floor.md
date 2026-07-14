@@ -1,4 +1,7 @@
-# 0007. Per-notifier `min_severity` as a stateless delivery floor
+---
+title: '0007. Per-notifier `min_severity` as a stateless delivery floor'
+weight: 7
+---
 
 - **Status:** Accepted
 - **Date:** 2026-07-11

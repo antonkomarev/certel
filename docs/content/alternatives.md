@@ -1,4 +1,8 @@
-# Survey of existing SSL certificate monitoring tools
+---
+title: 'Survey of existing SSL certificate monitoring tools'
+linkTitle: 'Alternatives'
+weight: 20
+---
 
 An analysis of open-source alternatives carried out before development started
 (July 2026). Conclusion: the niche of "a single binary + YAML → templated
