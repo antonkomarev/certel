@@ -7,7 +7,10 @@ weight: 40
 An analysis of open-source alternatives carried out before development started
 (July 2026). Conclusion: the niche of "a single binary + YAML → templated
 alerts to an arbitrary webhook, with no mandatory Prometheus stack" is not
-covered by existing tools — so we build our own.
+covered by existing tools. The reasoning that led from this survey to building
+certel is in the [Introduction](introduction.md); this page keeps the raw
+material — the comparison table, what we borrowed, and the license
+constraints.
 
 ## Comparison table
 
@@ -27,27 +30,13 @@ covered by existing tools — so we build our own.
 | Zabbix / Nagios / Icinga | C / C / C++ | GPL | via plugins | yes | via exporters | Full monitoring systems, not utilities |
 | [certspotter](https://github.com/SSLMate/certspotter) | Go | **MPL-2.0** | n/a | script hooks, email | no | Different niche: watches CT logs for certificate *issuance* |
 
-## Why we build our own
-
-1. **Architectural mismatch with exporters.** ssl_exporter and Blackbox are
-   stateless probes that run "on scrape": the schedule lives in Prometheus and
-   the alerting (deduplication, webhooks, templates) lives in Alertmanager.
-   Our value is a self-contained binary: its own scheduler, its own
-   "already alerted / recovered" state, its own webhook templating. The only
-   thing an exporter would give us is the TLS probe itself (~300–500 lines) —
-   the smaller part of the project.
-2. **Gatus / Uptime Kuma cannot do STARTTLS** — while smtp/imap/pop3/postgres
-   are v1 requirements for us.
-3. **Single-maintainer dependency.** ssl_exporter is alive, but releases come
-   out roughly once a year and mostly bump dependencies. Basing the core of a
-   security product on such a dependency is a bad trade given its size.
-
 ## What we may borrow
 
 - **Metric-name compatibility with ssl_exporter** (`ssl_probe_success`,
   `ssl_cert_not_after`, `ssl_verified_cert_not_after`): third-party Grafana
-  dashboards and alerting rules work with us unchanged — a cheap way to
-  remove the migration barrier.
+  dashboards and alerting rules port over with a label swap (certel's `host`
+  instead of the multi-target `instance`) — a cheap way to lower the
+  migration barrier.
 - **ssl_exporter sources as a reference** for corner cases (verified-chain
   numbering, STARTTLS dialogs, custom CAs).
 
