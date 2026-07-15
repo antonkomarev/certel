@@ -1,7 +1,13 @@
 ---
 title: 'NNNN. Short title of the decision'
 weight: 999
+# This is the copy-me scaffold, not a real decision: keep it reachable via the
+# explicit link in the ADR index Conventions section, but out of the auto-built
+# navigation sidebar, the site search, and the generated llms.txt outline.
 excludeSearch: true
+llms: false
+sidebar:
+  exclude: true
 ---
 
 - **Status:** Proposed | Accepted | Superseded by NNNN | Deprecated

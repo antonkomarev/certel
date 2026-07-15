@@ -6,6 +6,13 @@ title = "certel"
 enableRobotsTXT = true
 enableGitInfo = true
 
+# Emit an llms.txt at the site root — a structured outline of every section and
+# page for AI agents/LLMs. Only the home kind carries the extra format; page and
+# section keep Hugo's defaults. Exclude a page with `llms: false` in its front
+# matter. The template pulls the site description below into the summary line.
+[outputs]
+  home = ["html", "llms"]
+
 [module]
   [[module.imports]]
     path = "github.com/imfing/hextra"
@@ -24,13 +31,9 @@ enableGitInfo = true
 
 [menu]
   [[menu.main]]
-    name = "Documentation"
+    name = "Home"
     pageRef = "/"
     weight = 1
-  [[menu.main]]
-    name = "ADRs"
-    pageRef = "/adr"
-    weight = 2
   [[menu.main]]
     name = "Search"
     weight = 3
@@ -44,6 +47,8 @@ enableGitInfo = true
       icon = "github"
 
 [params]
+  description = "Self-hosted SSL/TLS certificate monitor: a single binary and a single YAML file, with templated webhook alerts and optional Prometheus metrics."
+
   [params.navbar]
     displayTitle = true
     displayLogo = false
