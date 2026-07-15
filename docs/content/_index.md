@@ -18,8 +18,9 @@ Optionally it exposes Prometheus metrics whose certificate metric *names* match
 [ssl_exporter](https://github.com/ribbybibby/ssl_exporter).
 
 {{< cards >}}
+  {{< card link="introduction" title="Introduction" subtitle="The concept, what certel owns itself, and why we built it." icon="information-circle" >}}
   {{< card link="metrics" title="Metrics" subtitle="Everything exported on /metrics, and the rules new metrics follow." icon="chart-bar" >}}
-  {{< card link="alternatives" title="Alternatives" subtitle="The survey of existing tools that motivated building certel." icon="clipboard-list" >}}
+  {{< card link="alternatives" title="Alternatives" subtitle="The survey of existing SSL monitoring tools, licenses included." icon="clipboard-list" >}}
   {{< card link="adr" title="ADRs" subtitle="Architecture Decision Records — the why behind the design." icon="book-open" >}}
   {{< card link="https://github.com/antonkomarev/certel" title="Source" subtitle="Repository, issues, and releases on GitHub." icon="github" >}}
 {{< /cards >}}
