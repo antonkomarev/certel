@@ -1,7 +1,7 @@
 ---
 title: 'Survey of existing SSL certificate monitoring tools'
 linkTitle: 'Alternatives'
-weight: 20
+weight: 40
 ---
 
 An analysis of open-source alternatives carried out before development started

@@ -1,6 +1,12 @@
 ---
 title: 'certel'
 toc: false
+# Give every descendant page the docs layout so the left navigation sidebar
+# persists on single pages too (metrics, alternatives, and each ADR). Without
+# this they fall back to Hextra's centered no-sidebar single layout. The
+# cascade does not apply to this home page itself, so the landing cards stay.
+cascade:
+  type: docs
 ---
 
 **Cert**ificate **E**xpiry & **L**ogs.
