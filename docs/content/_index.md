@@ -19,6 +19,7 @@ Optionally it exposes Prometheus metrics whose certificate metric *names* match
 
 {{< cards >}}
   {{< card link="introduction" title="Introduction" subtitle="The concept, what certel owns itself, and why we built it." icon="information-circle" >}}
+  {{< card link="quick-start" title="Quick Start" subtitle="From zero to a working certificate check in one command." icon="play" >}}
   {{< card link="metrics" title="Metrics" subtitle="Everything exported on /metrics, and the rules new metrics follow." icon="chart-bar" >}}
   {{< card link="alternatives" title="Alternatives" subtitle="The survey of existing SSL monitoring tools, licenses included." icon="clipboard-list" >}}
   {{< card link="adr" title="ADRs" subtitle="Architecture Decision Records — the why behind the design." icon="book-open" >}}
